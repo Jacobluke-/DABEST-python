@@ -2498,12 +2498,6 @@ class EffectSizeDataFrame(object):
 
                 reprs.append(text_repr)
 
-        varname = get_varname(self.__dabest_obj)
-        lastline = "To get the results of all valid statistical tests, " +\
-        "use `{}.{}.statistical_tests`".format(varname, self.__effect_size)
-        reprs.append(lastline)
-
-        # reprs.insert(0, print_greeting())
 
         self.__for_print = "\n\n".join(reprs)
 
