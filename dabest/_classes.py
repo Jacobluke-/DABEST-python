@@ -2503,7 +2503,7 @@ class EffectSizeDataFrame(object):
         "use `{}.{}.statistical_tests`".format(varname, self.__effect_size)
         reprs.append(lastline)
 
-        reprs.insert(0, print_greeting())
+        # reprs.insert(0, print_greeting())
 
         self.__for_print = "\n\n".join(reprs)
 
