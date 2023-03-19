@@ -142,7 +142,7 @@ def test_hedges_g_paired():
 
 def test_cohens_h():
     cohens_h = effsize.cohens_h(smoke.low, smoke.high)
-    assert np.round(cohens_h, 2) == pytest.approx(-0.17)
+    assert np.round(cohens_h, 2) == pytest.approx(0.17)
 
 
 
@@ -225,7 +225,7 @@ def test_paired_permutation_test():
     
 def test_lqrt_unpaired():
     unpaired_dabest = Dabest(wellbeing, idx=("control", "expt"), 
-                             paired=False, id_col=None, 
+                             paired=None, id_col=None,
                              **dabest_default_kwargs)
     lqrt_result = unpaired_dabest.mean_diff.lqrt
                    

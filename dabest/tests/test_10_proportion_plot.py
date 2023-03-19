@@ -12,16 +12,9 @@ df = create_demo_prop_dataset()
 
 two_groups_unpaired = load(df, idx=("Control 1", "Test 1"), proportional=True)
 
-two_groups_paired   = load(df, idx=("Control 1", "Test 1"),
-                           paired="baseline", id_col="ID",proportional=True)
-
 multi_2group = load(df, idx=(("Control 1", "Test 1",),
                              ("Control 2", "Test 2")),
                     proportional=True)
-
-multi_2group_paired = load(df, idx=(("Control 1", "Test 1"),
-                                 ("Control 2", "Test 2")),
-                            paired="baseline", id_col="ID", proportional=True)
 
 shared_control = load(df, idx=("Control 1", "Test 1",
                                 "Test 2", "Test 3",
@@ -31,8 +24,32 @@ shared_control = load(df, idx=("Control 1", "Test 1",
 multi_groups = load(df, idx=(("Control 1", "Test 1",),
                              ("Control 2", "Test 2","Test 3"),
                              ("Control 3", "Test 4","Test 5", "Test 6")
-                             ),proportional=True
-                    )
+                             ),proportional=True)
+
+two_groups_paired   = load(df, idx=("Control 1", "Test 1"),
+                           paired="baseline", id_col="ID",proportional=True)
+
+multi_2group_paired = load(df, idx=(("Control 1", "Test 1"),
+                                 ("Control 2", "Test 2")),
+                            paired="baseline", id_col="ID", proportional=True)
+
+multi_groups_paired = load(df, idx=(("Control 1", "Test 1",),
+                             ("Control 2", "Test 2","Test 3"),
+                             ("Control 3", "Test 4","Test 5", "Test 6")
+                             ),paired="baseline", id_col="ID", proportional=True)
+
+two_groups_sequential   = load(df, idx=("Control 1", "Test 1"),
+                           paired="sequential", id_col="ID",proportional=True)
+
+multi_2group_sequential = load(df, idx=(("Control 1", "Test 1"),
+                                 ("Control 2", "Test 2")),
+                            paired="sequential", id_col="ID", proportional=True)
+
+multi_groups_sequential = load(df, idx=(("Control 1", "Test 1",),
+                             ("Control 2", "Test 2","Test 3"),
+                             ("Control 3", "Test 4","Test 5", "Test 6")
+                             ),paired="sequential", id_col="ID", proportional=True)
+
 
 @pytest.mark.mpl_image_compare
 def test_101_gardner_altman_unpaired_propdiff():
@@ -44,7 +61,7 @@ def test_103_cummings_two_group_unpaired_propdiff():
                                               float_contrast=False);
 
 @pytest.mark.mpl_image_compare
-def test_105_cummings_multi_group_unpaired__propdiff():
+def test_105_cummings_multi_group_unpaired_propdiff():
     return multi_2group.mean_diff.plot();
 
 @pytest.mark.mpl_image_compare
@@ -156,14 +173,39 @@ def test_120_long_df_nan():
 
 @pytest.mark.mpl_image_compare
 def test_121_cohens_h_gardner_altman():
-    return two_groups_unpaired.cohens_h.plot()
+    return two_groups_unpaired.cohens_h.plot();
 
 @pytest.mark.mpl_image_compare
 def test_122_cohens_h_cummings():
-    return two_groups_unpaired.cohens_h.plot(float_contrast=False)
+    return two_groups_unpaired.cohens_h.plot(float_contrast=False);
 
 @pytest.mark.mpl_image_compare
-def test_123_style_sheets():
+def test_123_sankey_gardner_altman():
+    return two_groups_paired.mean_diff.plot();
+
+@pytest.mark.mpl_image_compare
+def test_124_sankey_cummings():
+    return two_groups_paired.mean_diff.plot(float_contrast=False);
+
+@pytest.mark.mpl_image_compare
+def test_125_sankey_2paired_groups():
+    return multi_2group_paired.mean_diff.plot();
+
+@pytest.mark.mpl_image_compare
+def test_126_sankey_2sequential_groups():
+    return multi_2group_sequential.mean_diff.plot();
+
+@pytest.mark.mpl_image_compare
+def test_127_sankey_multi_group_paired():
+    return multi_groups_paired.mean_diff.plot();
+
+@pytest.mark.mpl_image_compare
+def test_128_sankey_transparency():
+    return two_groups_paired.mean_diff.plot(sankey_kwargs = {"alpha": 0.2});
+
+
+@pytest.mark.mpl_image_compare
+def test_129_style_sheets():
     # Perform this test last so we don't have to reset the plot style.
     plt.style.use("dark_background")
     return multi_2group.mean_diff.plot(face_color="black");
