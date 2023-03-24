@@ -391,11 +391,16 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
     for i, leftLabel in enumerate(leftLabels):
         myD = {}
         myD['left'] = (dataFrame[dataFrame.left == leftLabel].leftWeight.sum()/ \
-            dataFrame.leftWeight.sum())*(1-(len(leftLabels)-1)*0.02)
+            dataFrame.leftWeight.sum())
         if i == 0:
             myD['bottom'] = 0
+            myD['left'] -= 0.01
             myD['top'] = myD['left']
+        elif i == len(leftLabels) - 1:
+            myD['bottom'] = 1 - myD['left'] + 0.01
+            myD['top'] = 1
         else:
+            myD['left'] -= 0.02
             myD['bottom'] = leftWidths_norm[leftLabels[i - 1]]['top'] + 0.02
             myD['top'] = myD['bottom'] + myD['left']
             topEdge = myD['top']
@@ -406,11 +411,16 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
     for i, rightLabel in enumerate(rightLabels):
         myD = {}
         myD['right'] = (dataFrame[dataFrame.right == rightLabel].rightWeight.sum()/ \
-            dataFrame.rightWeight.sum())*(1-(len(leftLabels)-1)*0.02)
+            dataFrame.rightWeight.sum())
         if i == 0:
             myD['bottom'] = 0
+            myD['right'] -= 0.01
             myD['top'] = myD['right']
+        elif i == len(rightLabels) - 1:
+            myD['bottom'] = 1 - myD['right'] + 0.01
+            myD['top'] = 1
         else:
+            myD['right'] -= 0.02
             myD['bottom'] = rightWidths_norm[rightLabels[i - 1]]['top'] + 0.02
             myD['top'] = myD['bottom'] + myD['right']
             topEdge = myD['top']
