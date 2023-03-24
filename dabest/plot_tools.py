@@ -286,7 +286,7 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
         data on the right of the diagram
         len(left) == len(right)
     xpos: float
-        the starting point on the x-axis
+        the starting point on the x-axis of the center of the left vertical bar
     leftWeight: NumPy array
         weights for the left labels, if None, all weights are 1
     rightWeight: NumPy array
@@ -298,8 +298,12 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
     rightLabels: list
         labels for the right side of the diagram. The diagram will be sorted by these labels.
     ax: matplotlib axes to be drawn on
-    aspect: float
-        vertical extent of the diagram in units of horizontal extent
+    width:
+        Width of the diagram, measured from the center of the left vertical bar to the center of the right vertical bar
+    alpha:
+        Transparency of the diagram
+    bar_width:
+        Width of the vertical bars as the proportion of the width
     rightColor: bool
         if True, each strip of the diagram will be colored according to the corresponding left labels
     align: bool
@@ -458,7 +462,7 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
     # Plot vertical bars for each label
     for leftLabel in leftLabels:
         ax.fill_between(
-            [leftpos + (-(bar_width) * xMax), leftpos],
+            [leftpos + (-(bar_width) * xMax * 0.5), leftpos + (bar_width * xMax * 0.5)],
             2 * [leftWidths_norm[leftLabel]["bottom"]],
             2 * [leftWidths_norm[leftLabel]["bottom"] + leftWidths_norm[leftLabel]["left"]],
             color=colorDict[leftLabel],
@@ -466,7 +470,7 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
         )
     for rightLabel in rightLabels:
         ax.fill_between(
-            [xMax + leftpos, leftpos + ((1 + bar_width) * xMax)], 
+            [xMax + leftpos + (-bar_width * xMax * 0.5), leftpos + xMax + (bar_width * xMax * 0.5)], 
             2 * [rightWidths_norm[rightLabel]['bottom']],
             2 * [rightWidths_norm[rightLabel]['bottom'] + rightWidths_norm[rightLabel]['right']],
             color=colorDict[rightLabel],
@@ -476,8 +480,7 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
     # Plot error bars
     error_bar(concatenated_df, x='groups', y='values', ax=ax, offset=0, gap_width_percent=2,
               method="sankey_error_bar",
-              pos=[(leftpos + (-(bar_width) * xMax) + leftpos)/2, \
-                   (xMax + leftpos + leftpos + ((1 + bar_width) * xMax))/2])
+              pos=[leftpos, leftpos + xMax])
     
     # Plot strips
     for leftLabel, rightLabel in itertools.product(leftLabels, rightLabels):
@@ -500,7 +503,7 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
             leftWidths_norm[leftLabel]['bottom'] += ns_l_norm[leftLabel][rightLabel]
             rightWidths_norm[rightLabel]['bottom'] += ns_r_norm[leftLabel][rightLabel]
             ax.fill_between(
-                np.linspace(leftpos, leftpos + xMax, len(ys_d)), ys_d, ys_u, alpha=alpha,
+                np.linspace(leftpos + (bar_width * xMax * 0.5), leftpos + xMax - (bar_width * xMax * 0.5), len(ys_d)), ys_d, ys_u, alpha=alpha,
                 color=colorDict[labelColor], edgecolor='none'
             )
                 
@@ -616,8 +619,8 @@ def sankeydiag(data, xvar, yvar, left_idx, right_idx,
                             align=align, alpha=alpha)
             xpos += 1
         else:
-            xpos = 0 + bar_width/2
-            width = 1 - bar_width
+            xpos = 0
+            width = 1
             single_sankey(data[data[xvar]==left][yvar], data[data[xvar]==right][yvar], 
                             xpos=xpos, ax=ax, colorDict=plot_palette, width=width, 
                             leftLabels=leftLabels, rightLabels=rightLabels, 
