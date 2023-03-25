@@ -134,7 +134,8 @@ def error_bar(data, x, y, type='mean_sd', offset=0.2, ax=None,
     if gap_width_percent < 0 or gap_width_percent > 100:
         raise ValueError("`gap_width_percent` must be between 0 and 100.")
     if method not in ['gapped_lines', 'proportional_error_bar', 'sankey_error_bar']:
-        raise ValueError("Invalid `method`. Must be one of 'gapped_lines', 'proportional_error_bar', or 'sankey_error_bar'.")
+        raise ValueError("Invalid `method`. Must be one of 'gapped_lines', \
+                         'proportional_error_bar', or 'sankey_error_bar'.")
 
     if ax is None:
         ax = plt.gca()
@@ -299,7 +300,8 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
         labels for the right side of the diagram. The diagram will be sorted by these labels.
     ax: matplotlib axes to be drawn on
     width:
-        Width of the diagram, measured from the center of the left vertical bar to the center of the right vertical bar
+        Width of the diagram, measured from the center of 
+        the left vertical bar to the center of the right vertical bar
     alpha:
         Transparency of the diagram
     bar_width:
@@ -503,7 +505,9 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
             leftWidths_norm[leftLabel]['bottom'] += ns_l_norm[leftLabel][rightLabel]
             rightWidths_norm[rightLabel]['bottom'] += ns_r_norm[leftLabel][rightLabel]
             ax.fill_between(
-                np.linspace(leftpos + (bar_width * xMax * 0.5), leftpos + xMax - (bar_width * xMax * 0.5), len(ys_d)), ys_d, ys_u, alpha=alpha,
+                np.linspace(leftpos + (bar_width * xMax * 0.5), \
+                            leftpos + xMax - (bar_width * xMax * 0.5), len(ys_d)), \
+                ys_d, ys_u, alpha=alpha,
                 color=colorDict[labelColor], edgecolor='none'
             )
                 
@@ -547,7 +551,8 @@ def sankeydiag(data, xvar, yvar, left_idx, right_idx,
     alpha: float
         the transparency of each strip
     rightColor: bool
-        if True, each strip of the diagram will be colored according to the corresponding left labels
+        if True, each strip of the diagram will be colored 
+        according to the corresponding left labels
     colorDict: dictionary of colors for each label
         input format: {'label': 'color'}
     '''
