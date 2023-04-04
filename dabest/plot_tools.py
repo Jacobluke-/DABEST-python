@@ -267,12 +267,17 @@ def normalize_dict(nested_dict, target):
     for key, value in nested_dict.items():
         if isinstance(value, dict):
             for subkey in value.keys():
-                value[subkey] = value[subkey] * target[subkey]['right']/val[subkey]
+                if val[subkey] != 0:
+                    # Address the problem when one of the label have zero value
+                    value[subkey] = value[subkey] * target[subkey]['right']/val[subkey]
+                else:
+                    value[subkey] = 0
     return nested_dict
 
 def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None, 
             colorDict=None, leftLabels=None, rightLabels=None, ax=None, 
-            width=0.5, alpha=0.65, bar_width=0.2, rightColor=False, align='center'):
+            flow=True, sankey=True, width=0.5, alpha=0.65, error_bar_on=True,
+            strip_on=True, bar_width=0.2, rightColor=False, align='center'):
 
     '''
     Make a single Sankey diagram showing proportion flow from left to right
@@ -299,6 +304,14 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
     rightLabels: list
         labels for the right side of the diagram. The diagram will be sorted by these labels.
     ax: matplotlib axes to be drawn on
+    flow: bool
+        determined by the driver function on plotter.py. 
+        if True, draw the sankey in a flow
+        if False, draw 1 vs 1 Sankey diagram for each group comparison
+    sankey: bool
+        determined by the driver function on plotter.py. 
+        if True, draw the sankey diagram
+        Else use bar plot instead.
     width:
         Width of the diagram, measured from the center of 
         the left vertical bar to the center of the right vertical bar
@@ -306,6 +319,10 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
         Transparency of the diagram
     bar_width:
         Width of the vertical bars as the proportion of the width
+    error_bar_on: bool
+        if True, draw error bar for each group comparison
+    strip_on: bool
+        if True, draw strip for each group comparison
     rightColor: bool
         if True, each strip of the diagram will be colored according to the corresponding left labels
     align: bool
@@ -458,7 +475,6 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
     
     # ns_r should be using a different way of normalization to fit the right side
     # It is normalized using the value with the same key in each sub-dictionary
-
     ns_r_norm = normalize_dict(ns_r, rightWidths_norm)
 
     # Plot vertical bars for each label
@@ -470,51 +486,54 @@ def single_sankey(left, right, xpos=0, leftWeight=None, rightWeight=None,
             color=colorDict[leftLabel],
             alpha=0.99,
         )
-    for rightLabel in rightLabels:
-        ax.fill_between(
-            [xMax + leftpos + (-bar_width * xMax * 0.5), leftpos + xMax + (bar_width * xMax * 0.5)], 
-            2 * [rightWidths_norm[rightLabel]['bottom']],
-            2 * [rightWidths_norm[rightLabel]['bottom'] + rightWidths_norm[rightLabel]['right']],
-            color=colorDict[rightLabel],
-            alpha=0.99
-        )
+    if flow == False or sankey == True:
+        for i, rightLabel in enumerate(rightLabels):
+            ax.fill_between(
+                [xMax + leftpos + (-bar_width * xMax * 0.5), leftpos + xMax + (bar_width * xMax * 0.5)], 
+                2 * [rightWidths_norm[rightLabel]['bottom']],
+                2 * [rightWidths_norm[rightLabel]['bottom'] + rightWidths_norm[rightLabel]['right']],
+                color=colorDict[rightLabel],
+                alpha=0.99
+            )
 
     # Plot error bars
-    error_bar(concatenated_df, x='groups', y='values', ax=ax, offset=0, gap_width_percent=2,
-              method="sankey_error_bar",
-              pos=[leftpos, leftpos + xMax])
+    if error_bar_on and strip_on:
+        error_bar(concatenated_df, x='groups', y='values', ax=ax, offset=0, gap_width_percent=2,
+                method="sankey_error_bar",
+                pos=[leftpos, leftpos + xMax])
     
     # Plot strips
-    for leftLabel, rightLabel in itertools.product(leftLabels, rightLabels):
-        labelColor = leftLabel
-        if rightColor:
-            labelColor = rightLabel
-        if len(dataFrame[(dataFrame.left == leftLabel) & (dataFrame.right == rightLabel)]) > 0:
-            # Create array of y values for each strip, half at left value,
-            # half at right, convolve
-            ys_d = np.array(50 * [leftWidths_norm[leftLabel]['bottom']] + \
-                50 * [rightWidths_norm[rightLabel]['bottom']])
-            ys_d = np.convolve(ys_d, 0.05 * np.ones(20), mode='valid')
-            ys_d = np.convolve(ys_d, 0.05 * np.ones(20), mode='valid')
-            ys_u = np.array(50 * [leftWidths_norm[leftLabel]['bottom'] + ns_l_norm[leftLabel][rightLabel]] + \
-                50 * [rightWidths_norm[rightLabel]['bottom'] + ns_r_norm[leftLabel][rightLabel]])
-            ys_u = np.convolve(ys_u, 0.05 * np.ones(20), mode='valid')
-            ys_u = np.convolve(ys_u, 0.05 * np.ones(20), mode='valid')
+    if sankey == True and strip_on == True:
+        for leftLabel, rightLabel in itertools.product(leftLabels, rightLabels):
+            labelColor = leftLabel
+            if rightColor:
+                labelColor = rightLabel
+            if len(dataFrame[(dataFrame.left == leftLabel) & (dataFrame.right == rightLabel)]) > 0:
+                # Create array of y values for each strip, half at left value,
+                # half at right, convolve
+                ys_d = np.array(50 * [leftWidths_norm[leftLabel]['bottom']] + \
+                    50 * [rightWidths_norm[rightLabel]['bottom']])
+                ys_d = np.convolve(ys_d, 0.05 * np.ones(20), mode='valid')
+                ys_d = np.convolve(ys_d, 0.05 * np.ones(20), mode='valid')
+                ys_u = np.array(50 * [leftWidths_norm[leftLabel]['bottom'] + ns_l_norm[leftLabel][rightLabel]] + \
+                    50 * [rightWidths_norm[rightLabel]['bottom'] + ns_r_norm[leftLabel][rightLabel]])
+                ys_u = np.convolve(ys_u, 0.05 * np.ones(20), mode='valid')
+                ys_u = np.convolve(ys_u, 0.05 * np.ones(20), mode='valid')
 
-            # Update bottom edges at each label so next strip starts at the right place
-            leftWidths_norm[leftLabel]['bottom'] += ns_l_norm[leftLabel][rightLabel]
-            rightWidths_norm[rightLabel]['bottom'] += ns_r_norm[leftLabel][rightLabel]
-            ax.fill_between(
-                np.linspace(leftpos + (bar_width * xMax * 0.5), \
-                            leftpos + xMax - (bar_width * xMax * 0.5), len(ys_d)), \
-                ys_d, ys_u, alpha=alpha,
-                color=colorDict[labelColor], edgecolor='none'
-            )
+                # Update bottom edges at each label so next strip starts at the right place
+                leftWidths_norm[leftLabel]['bottom'] += ns_l_norm[leftLabel][rightLabel]
+                rightWidths_norm[rightLabel]['bottom'] += ns_r_norm[leftLabel][rightLabel]
+                ax.fill_between(
+                    np.linspace(leftpos + (bar_width * xMax * 0.5), \
+                                leftpos + xMax - (bar_width * xMax * 0.5), len(ys_d)), \
+                    ys_d, ys_u, alpha=alpha,
+                    color=colorDict[labelColor], edgecolor='none'
+                )
                 
 def sankeydiag(data, xvar, yvar, left_idx, right_idx, 
                 leftLabels=None, rightLabels=None,  
-                palette=None, ax=None, 
-                one_sankey=False,
+                palette=None, ax=None, flow=True,
+                one_sankey=False, sankey=True,
                 width=0.4, rightColor=False,
                 align='center', alpha=0.65, **kwargs):
     '''
@@ -541,9 +560,17 @@ def sankeydiag(data, xvar, yvar, left_idx, right_idx,
         labels for the right side of the diagram. The diagram will be sorted by these labels.
     palette: str or dict
     ax: matplotlib axes to be drawn on
+    flow: bool
+        determined by the driver function on plotter.py. 
+        if True, draw the sankey in a flow
+        if False, draw 1 vs 1 Sankey diagram for each group comparison
     one_sankey: bool 
         determined by the driver function on plotter.py. 
         if True, draw the sankey diagram across the whole raw data axes
+    sankey: bool
+        determined by the driver function on plotter.py. 
+        if True, draw the sankey diagram
+        Else use bar plot instead.
     width: float
         the width of each sankey diagram
     align: str
@@ -576,6 +603,12 @@ def sankeydiag(data, xvar, yvar, left_idx, right_idx,
     
     if "bar_width" in kwargs:
         bar_width = kwargs["bar_width"]
+    
+    if "sankey" in kwargs:
+        sankey = kwargs["sankey"]
+    
+    if "flow" in kwargs:
+        flow = kwargs["flow"]
 
     if ax is None:
         ax = plt.gca()
@@ -615,25 +648,39 @@ def sankeydiag(data, xvar, yvar, left_idx, right_idx,
     else:
         plot_palette = None
 
-    for left, right in zip(broadcasted_left, right_idx):
+    # Create a strip_on list to determine whether to draw the strip during repeated measures
+    strip_on = [int(right not in broadcasted_left[:i]) for i, right in enumerate(right_idx)]
+
+    draw_idx = list(zip(broadcasted_left, right_idx))
+    for i, (left, right) in enumerate(draw_idx):
         if one_sankey == False:
+            if flow == True:
+                width = 1
+                align = 'edge'
+                sankey = False if i == len(draw_idx)-1 else sankey # Remove last strip in flow
+            error_bar_on = False if i == len(draw_idx)-1 and flow else True # Remove last error_bar in flow
+            bar_width = 0.4 if sankey == False and flow == False else bar_width
             single_sankey(data[data[xvar]==left][yvar], data[data[xvar]==right][yvar], 
                             xpos=xpos, ax=ax, colorDict=plot_palette, width=width, 
-                            leftLabels=leftLabels, rightLabels=rightLabels, 
-                            rightColor=rightColor, bar_width=bar_width,
-                            align=align, alpha=alpha)
+                            leftLabels=leftLabels, rightLabels=rightLabels, strip_on=strip_on[i],
+                            rightColor=rightColor, bar_width=bar_width, sankey=sankey,
+                            error_bar_on=error_bar_on, flow=flow, align=align, alpha=alpha)
             xpos += 1
         else:
             xpos = 0
             width = 1
+            if sankey == False:
+                bar_width = 0.5
             single_sankey(data[data[xvar]==left][yvar], data[data[xvar]==right][yvar], 
                             xpos=xpos, ax=ax, colorDict=plot_palette, width=width, 
                             leftLabels=leftLabels, rightLabels=rightLabels, 
-                            rightColor=rightColor, bar_width=bar_width,
-                            align='edge', alpha=alpha)
+                            rightColor=rightColor, bar_width=bar_width, sankey=sankey, 
+                            flow=False, align='edge', alpha=alpha)
 
-    if one_sankey == False:
-        sankey_ticks = [f"{left}\n v.s.\n{right}" for left, right in zip(broadcasted_left, right_idx)]
+# Now only draw vs xticks for two-column sankey diagram
+    if one_sankey == False or (sankey and not flow): 
+        sankey_ticks = [f"{left}" for left in broadcasted_left] if flow \
+        else [f"{left}\n v.s.\n{right}" for left, right in zip(broadcasted_left, right_idx)]
         ax.get_xaxis().set_ticks(np.arange(len(right_idx)))
         ax.get_xaxis().set_ticklabels(sankey_ticks)
     else:
