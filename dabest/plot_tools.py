@@ -213,6 +213,7 @@ def error_bar(data, x, y, type='mean_sd', offset=0.2, ax=None,
     kwargs['zorder'] = kwargs['zorder']
 
     for xpos, central_measure in enumerate(central_measures):
+        
         kwargs['color'] = custom_palette[xpos]
 
         if method == 'sankey_error_bar':
@@ -221,16 +222,28 @@ def error_bar(data, x, y, type='mean_sd', offset=0.2, ax=None,
             _xpos = xpos + offset[xpos]
 
         low = lows[xpos]
-        low_to_mean = mlines.Line2D([_xpos, _xpos],
-                                    [low, central_measure - gap_width],
-                                    **kwargs)
-        ax.add_line(low_to_mean)
-
         high = highs[xpos]
-        mean_to_high = mlines.Line2D([_xpos, _xpos],
-                                     [central_measure + gap_width, high],
-                                     **kwargs)
-        ax.add_line(mean_to_high)
+        if low == high == central_measure:
+            low_to_mean = mlines.Line2D([_xpos, _xpos],
+                                        [low, central_measure],
+                                        **kwargs)
+            ax.add_line(low_to_mean)
+            
+            mean_to_high = mlines.Line2D([_xpos, _xpos],
+                                        [central_measure, high],
+                                        **kwargs)
+            ax.add_line(mean_to_high)
+        else:
+            low_to_mean = mlines.Line2D([_xpos, _xpos],
+                                        [low, central_measure - gap_width],
+                                        **kwargs)
+            ax.add_line(low_to_mean)
+            
+            mean_to_high = mlines.Line2D([_xpos, _xpos],
+                                        [central_measure + gap_width, high],
+                                        **kwargs)
+            ax.add_line(mean_to_high)
+            
 
 def check_data_matches_labels(labels, data, side):
     '''
