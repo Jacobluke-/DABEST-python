@@ -385,6 +385,7 @@ def EffectSizeDataFramePlotter(EffectSizeDataFrame, **plot_kwargs):
         rawdata_axes.set_ylim(swarm_ylim)
 
     one_sankey = False if is_paired is not None else False # Flag to indicate if only one sankey is plotted.
+    two_col_sankey = True if proportional == True and one_sankey == False and sankey == True and flow == False else False
 
     if show_pairs is True:
         # Determine temp_idx based on is_paired and proportional conditions
@@ -465,7 +466,7 @@ def EffectSizeDataFramePlotter(EffectSizeDataFrame, **plot_kwargs):
                 one_sankey = True  
                 sankey_control_group.pop(); sankey_test_group.pop() # Remove the last element from two lists
 
-            two_col_sankey = True if proportional == True and one_sankey == False and sankey == True and flow == False else False
+            # two_col_sankey = True if proportional == True and one_sankey == False and sankey == True and flow == False else False
 
             # Replace the paired proportional plot with sankey diagram
             sankeyplot = sankeydiag(plot_data, xvar=xvar, yvar=yvar, 

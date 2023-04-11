@@ -49,6 +49,24 @@ multi_groups_sequential = load(df, idx=(("Control 1", "Test 1",),
                              ("Control 2", "Test 2","Test 3"),
                              ("Control 3", "Test 4","Test 5", "Test 6")
                              ),paired="sequential", id_col="ID", proportional=True)
+shared_control_paired = load(df, idx=("Control 1", "Test 1",
+                                "Test 2", "Test 3",
+                                "Test 4", "Test 5", "Test 6"), 
+                                paired="sequential", id_col="ID", proportional=True)
+
+zero_to_zero = load(df, idx=('Test 7', 'Test 9'), 
+                    proportional=True, paired='sequential', id_col="ID")
+zero_to_one = load(df, idx=('Test 7', 'Test 8'),
+                     proportional=True, paired='sequential', id_col="ID")
+one_to_zero = load(df, idx=('Test 8', 'Test 7'),
+                        proportional=True, paired='sequential', id_col="ID")
+
+one_in_separate_control = load(df, idx=((("Control 1", "Test 1"),
+                                ("Test 2", "Test 3"),
+                                ("Test 4", "Test 8", "Test 6"))),
+                    proportional=True, paired="sequential", id_col="ID")
+
+                             
 
 
 @pytest.mark.mpl_image_compare
@@ -203,11 +221,36 @@ def test_127_sankey_multi_group_paired():
 def test_128_sankey_transparency():
     return two_groups_paired.mean_diff.plot(sankey_kwargs = {"alpha": 0.2});
 
+@pytest.mark.mpl_image_compare
+def test_129_zero_to_zero():
+    return zero_to_zero.mean_diff.plot();
 
 @pytest.mark.mpl_image_compare
-def test_129_style_sheets():
+def test_130_zero_to_one():
+    return zero_to_one.mean_diff.plot();
+
+@pytest.mark.mpl_image_compare
+def test_131_one_to_zero():
+    return one_to_zero.mean_diff.plot();
+
+@pytest.mark.mpl_image_compare
+def test_132_shared_control_sankey_off():
+    return shared_control_paired.mean_diff.plot(sankey_kwargs={'sankey':False});
+
+@pytest.mark.mpl_image_compare
+def test_133_shared_control_flow_off():
+    return shared_control_paired.mean_diff.plot(sankey_kwargs={'flow':False});
+
+@pytest.mark.mpl_image_compare
+def test_134_separate_control_sankey_off():
+    return multi_groups_sequential.mean_diff.plot(sankey_kwargs={'sankey':False});
+
+@pytest.mark.mpl_image_compare
+def test_135_separate_control_flow_off():
+    return multi_groups_sequential.mean_diff.plot(sankey_kwargs={'flow':False});
+
+@pytest.mark.mpl_image_compare
+def test_136_style_sheets():
     # Perform this test last so we don't have to reset the plot style.
     plt.style.use("dark_background")
     return multi_2group.mean_diff.plot(face_color="black");
-
-

@@ -154,6 +154,9 @@ def create_demo_prop_dataset(seed=9999, N=40):
     t4 = np.random.binomial(n, 0.4, size=N)
     t5 = np.random.binomial(n, 0.5, size=N)
     t6 = np.random.binomial(n, 0.6, size=N)
+    t7 = np.zeros(N)
+    t8 = np.ones(N)
+    t9 = np.zeros(N)
 
     # Add a `gender` column for coloring the data.
     females = np.repeat('Female', N / 2).tolist()
@@ -168,6 +171,7 @@ def create_demo_prop_dataset(seed=9999, N=40):
                        'Control 2': c2, 'Test 2': t2,
                        'Control 3': c3, 'Test 3': t3,
                        'Test 4': t4, 'Test 5': t5, 'Test 6': t6,
+                       'Test 7': t7, 'Test 8': t8, 'Test 9': t9,
                        'Gender': gender, 'ID': id_col
                        })
 
