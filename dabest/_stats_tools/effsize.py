@@ -74,7 +74,7 @@ def two_group_difference(control, test, is_paired=None,
     import numpy as np
     import warnings
 
-    if effect_size == "mean_diff":
+    if effect_size == "mean_diff" or effect_size=="delta_g":
         return func_difference(control, test, np.mean, is_paired)
 
     elif effect_size == "median_diff":
@@ -93,7 +93,7 @@ def two_group_difference(control, test, is_paired=None,
     elif effect_size == "cohens_h":
         return cohens_h(control, test)
 
-    elif effect_size == "hedges_g":
+    elif effect_size == "hedges_g" or effect_size == "delta_g":
         return hedges_g(control, test, is_paired)
 
     elif effect_size == "cliffs_delta":

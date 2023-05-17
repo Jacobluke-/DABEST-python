@@ -347,6 +347,9 @@ class Dabest(object):
         self.__hedges_g     = EffectSizeDataFrame(self, "hedges_g",
                                                 **EffectSizeDataFrame_kwargs)
 
+        self.__delta_g      = EffectSizeDataFrame(self, "delta_g",
+                                              **EffectSizeDataFrame_kwargs)
+
         if not paired:
             self.__cliffs_delta = EffectSizeDataFrame(self, "cliffs_delta",
                                                     **EffectSizeDataFrame_kwargs)
@@ -688,6 +691,78 @@ class Dabest(object):
         """
         return self.__cliffs_delta
 
+    @property
+    def delta_g(self):
+        """
+        Returns an :py:class:`EffectSizeDataFrame` for deltas' g, its confidence interval, and relevant statistics, for all comparisons as indicated via the `idx` and `paired` argument in `dabest.load()`.
+
+        Example
+        -------
+        >>> from scipy.stats import norm
+        >>> np.random.seed(seed) # Fix the seed so the results are replicable.
+        >>> y = norm.rvs(loc=3, scale=0.4, size=N*4)
+        >>> y[N:2*N] = y[N:2*N]+1
+        >>> y[2*N:3*N] = y[2*N:3*N]-0.5
+        >>> t1 = np.repeat('Placebo', N*2).tolist()
+        >>> t2 = np.repeat('Drug', N*2).tolist()
+        >>> treatment = t1 + t2
+        >>> rep = []
+        >>> for i in range(N*2):
+        >>>   rep.append('Rep1')
+        >>>   rep.append('Rep2')
+        >>> wt = np.repeat('W', N).tolist()
+        >>> mt = np.repeat('M', N).tolist()
+        >>> wt2 = np.repeat('W', N).tolist()
+        >>> mt2 = np.repeat('M', N).tolist()
+        >>> genotype = wt + mt + wt2 + mt2
+        >>> id = list(range(0, N*2))
+        >>> id_col = id + id
+        >>> df_delta2 = pd.DataFrame({'ID'        : id_col,
+        >>>                           'Rep'      : rep,
+        >>>                           'Genotype'  : genotype,
+        >>>                           'Treatment': treatment,
+        >>>                           'Y'         : y})
+        >>> unpaired_delta2 = dabest.load(data = df_delta2, x = ["Genotype", "Genotype"], y = "Y", delta2 = True, experiment = "Treatment")
+        >>> unpaired_delta2.delta_g
+
+        Notes
+        -----
+
+        Deltas' g is an effect size that only applied on experiments with a 2-by-2 arrangement where two independent variables, A and B, each have two categorical values, 1 and 2, which
+        calculates :py:attr:`hedges_g` for delta-delta statistics.
+
+        .. math::
+
+           \\Delta_{1} = \\overline{X}_{A_{2}, B_{1}} - \\overline{X}_{A_{1}, B_{1}}
+
+           \\Delta_{2} = \\overline{X}_{A_{2}, B_{2}} - \\overline{X}_{A_{1}, B_{2}}
+
+
+        where :math:`\overline{X}_{A_{i}, B_{j}}` is the mean of the sample with A = i and B = j, :math:`\\Delta` is the mean difference between two samples.
+
+        A delta-delta value is then calculated as the mean difference between the two primary deltas:
+
+        .. math::
+
+            \\Delta_{\\Delta} = \\Delta_{2} - \\Delta_{1}
+
+        and the standard deviation of the delta-delta value is calculated from a pooled variance of the 4 samples:
+
+        .. math::
+
+            s_{\\Delta_{\\Delta}} = \\sqrt{\\frac{(n_{A_{2}, B_{1}}-1)s_{A_{2}, B_{1}}^2+(n_{A_{1}, B_{1}}-1)s_{A_{1}, B_{1}}^2+(n_{A_{2}, B_{2}}-1)s_{A_{2}, B_{2}}^2+(n_{A_{1}, B_{2}}-1)s_{A_{1}, B_{2}}^2}{(n_{A_{2}, B_{1}} - 1) + (n_{A_{1}, B_{1}} - 1) + (n_{A_{2}, B_{2}} - 1) + (n_{A_{1}, B_{2}} - 1)}}
+
+        where :math:`s` is the standard deviation and :math:`n` is the sample size.
+
+        A deltas' g value is then calculated as delta-delta value divided by pooled standard deviation :math:`s_{\\Delta_{\\Delta}}`:
+
+        .. math::
+
+            \\Delta_{g} = \\frac{\\Delta_{\\Delta}}{s_{\\Delta_{\\Delta}}}
+
+        """
+
+        return self.__delta_g
 
     @property
     def data(self):
@@ -873,7 +948,8 @@ class Dabest(object):
 
 class DeltaDelta(object):
     """
-    A class to compute and store the delta-delta statistics for experiments with a 2-by-2 arrangement where two independent variables, A and B, each have two categorical values, 1 and 2. The data is divided into two pairs of two groups, and a primary delta is first calculated as the mean difference between each of the pairs:
+    A class to compute and store the delta-delta and deltas' g statistics for experiments with a 2-by-2 arrangement where two independent variables, A and B, each have two categorical values, 1 and 2.
+    The data is divided into two pairs of two groups, and a primary delta is first calculated as the mean difference between each of the pairs:
 
     .. math::
 
@@ -890,11 +966,12 @@ class DeltaDelta(object):
 
         \\Delta_{\\Delta} = \\Delta_{2} - \\Delta_{1}
     
-    and:
-
-    and the standard deviation of the delta-delta value is calculated from a pooled variance of the 4 samples:
+    and a deltas' g value is calculated as the mean difference between the two primary deltas divided by
+    the standard deviation of the delta-delta value, which is calculated from a pooled variance of the 4 samples:
 
     .. math::
+
+        \\Delta_{g} = \\frac{\\Delta_{\\Delta}}{s_{\\Delta_{\\Delta}}}
 
         s_{\\Delta_{\\Delta}} = \\sqrt{\\frac{(n_{A_{2}, B_{1}}-1)s_{A_{2}, B_{1}}^2+(n_{A_{1}, B_{1}}-1)s_{A_{1}, B_{1}}^2+(n_{A_{2}, B_{2}}-1)s_{A_{2}, B_{2}}^2+(n_{A_{1}, B_{2}}-1)s_{A_{1}, B_{2}}^2}{(n_{A_{2}, B_{1}} - 1) + (n_{A_{1}, B_{1}} - 1) + (n_{A_{2}, B_{2}} - 1) + (n_{A_{1}, B_{2}} - 1)}}
 
@@ -946,8 +1023,7 @@ class DeltaDelta(object):
 
     """
 
-    def __init__(self, effectsizedataframe, permutation_count,
-                ci=95):
+    def __init__(self, effectsizedataframe, permutation_count, bootstraps_delta_delta, ci=95):
 
         import numpy as np
         from numpy import sort as npsort
@@ -963,20 +1039,20 @@ class DeltaDelta(object):
         self.__dabest_obj        = effectsizedataframe.dabest_obj
         self.__ci                = ci
         self.__resamples         = effectsizedataframe.resamples
+        self.__effect_size       = effectsizedataframe.effect_size
         self.__alpha             = ci2g._compute_alpha_from_ci(ci)
         self.__permutation_count = permutation_count
         self.__bootstraps        = np.array(self.__effsizedf["bootstraps"])
         self.__control           = self.__dabest_obj.experiment_label[0]
         self.__test              = self.__dabest_obj.experiment_label[1]
 
-
-        # Compute the bootstrap delta-delta and the true dela-delta based on 
-        # the raw data 
-        self.__bootstraps_delta_delta = self.__bootstraps[1] - self.__bootstraps[0]
-
-        self.__difference = self.__effsizedf["difference"][1] - self.__effsizedf["difference"][0]
-
-
+        # Compute the bootstrap delta-delta or deltas' g and the true dela-delta based on the raw data
+        if self.__effect_size  == "mean_diff":
+            self.__bootstraps_delta_delta = bootstraps_delta_delta[2]
+            self.__difference = self.__effsizedf["difference"][1] - self.__effsizedf["difference"][0]
+        else:
+            self.__bootstraps_delta_delta = bootstraps_delta_delta[0]
+            self.__difference = bootstraps_delta_delta[1]
 
         sorted_delta_delta = npsort(self.__bootstraps_delta_delta)
 
@@ -1067,9 +1143,10 @@ class DeltaDelta(object):
 
         first_line = {"control"      : self.__control,
                       "test"         : self.__test}
-        
-        out1 = "The delta-delta between {control} and {test} ".format(**first_line)
-        
+        if self.__effect_size  == "mean_diff":
+            out1 = "The delta-delta between {control} and {test} ".format(**first_line)
+        else:
+            out1 = "The deltas' g between {control} and {test} ".format(**first_line)
         base_string_fmt = "{:." + str(sigfig) + "}"
         if "." in str(self.__ci):
             ci_width = base_string_fmt.format(self.__ci)
@@ -1938,9 +2015,6 @@ class TwoGroupsEffectSize(object):
 
         import scipy.stats as spstats
 
-        # import statsmodels.stats.power as power
-        import statsmodels
-
         from string import Template
         import warnings
 
@@ -1953,7 +2027,8 @@ class TwoGroupsEffectSize(object):
                                     "cohens_d" : "Cohen's d",
                                     "cohens_h" : "Cohen's h",
                                     "hedges_g" : "Hedges' g",
-                                    "cliffs_delta" : "Cliff's delta"}
+                                    "cliffs_delta" : "Cliff's delta",
+                                    "delta_g"  : "deltas' g"}
 
 
         kosher_es = [a for a in self.__EFFECT_SIZE_DICT.keys()]
@@ -2679,6 +2754,7 @@ class EffectSizeDataFrame(object):
     def __pre_calc(self):
         import pandas as pd
         from .misc_tools import print_greeting, get_varname
+        from ._stats_tools import confint_2group_diff as ci2g
 
         idx  = self.__dabest_obj.idx
         dat  = self.__dabest_obj._plot_data
@@ -2687,6 +2763,22 @@ class EffectSizeDataFrame(object):
 
         out = []
         reprs = []
+        if self.__delta2==True:
+            mixed_data = []
+            for j, current_tuple in enumerate(idx):
+                if self.__is_paired != "sequential":
+                    cname = current_tuple[0]
+                    control = dat[dat[xvar] == cname][yvar].copy()
+
+                for ix, tname in enumerate(current_tuple[1:]):
+                    if self.__is_paired == "sequential":
+                        cname = current_tuple[ix]
+                        control = dat[dat[xvar] == cname][yvar].copy()
+                    test = dat[dat[xvar] == tname][yvar].copy()
+                    mixed_data.append(control)
+                    mixed_data.append(test)
+            bootstraps_delta_delta = ci2g.compute_delta2_bootstrapped_diff(mixed_data[0], mixed_data[1], mixed_data[2], mixed_data[3],
+                                                                           self.__is_paired, self.__resamples, self.__random_seed)
 
         for j, current_tuple in enumerate(idx):
             if self.__is_paired!="sequential":
@@ -2698,7 +2790,6 @@ class EffectSizeDataFrame(object):
                     cname = current_tuple[ix]
                     control = dat[dat[xvar] == cname][yvar].copy()
                 test = dat[dat[xvar] == tname][yvar].copy()
-
                 result = TwoGroupsEffectSize(control, test,
                                              self.__effect_size,
                                              self.__proportional,
@@ -2714,7 +2805,7 @@ class EffectSizeDataFrame(object):
                 r_dict["test_N"]    = int(len(test))
                 out.append(r_dict)
                 if j == len(idx)-1 and ix == len(current_tuple)-2:
-                    if self.__delta2 and self.__effect_size == "mean_diff":
+                    if self.__delta2 and self.__effect_size in ["mean_diff","delta_g"]:
                         resamp_count = False
                         def_pval     = False
                     elif self.__mini_meta and self.__effect_size == "mean_diff":
@@ -2784,12 +2875,13 @@ class EffectSizeDataFrame(object):
             self.__results.insert(5, 'is_paired', self.__results.apply(lambda _: None, axis=1))
         
         # Create and compute the delta-delta statistics
-        if self.__delta2 is True and self.__effect_size == "mean_diff":
+        if self.__delta2 is True:
             self.__delta_delta = DeltaDelta(self,
                                             self.__permutation_count,
+                                            bootstraps_delta_delta,
                                             self.__ci)
             reprs.append(self.__delta_delta.__repr__(header=False))
-        elif self.__delta2 is True and self.__effect_size != "mean_diff":
+        elif self.__delta2 is True and self.__effect_size not in ["mean_diff", "delta_g"]:
             self.__delta_delta = "Delta-delta is not supported for {}.".format(self.__effect_size)
         else:
             self.__delta_delta = "`delta2` is False; delta-delta is therefore not calculated."
@@ -2889,8 +2981,8 @@ class EffectSizeDataFrame(object):
 
             raw_marker_size=6, es_marker_size=9,
 
-            swarm_label=None, barchart_label=None, contrast_label=None, delta2_label=None,
-            swarm_ylim=None, barchart_ylim=None, contrast_ylim=None, delta2_ylim=None,
+            swarm_label=None, contrast_label=None, delta2_label=None,
+            swarm_ylim=None, contrast_ylim=None, delta2_ylim=None,
 
             custom_palette=None, swarm_desat=0.5, halfviolin_desat=1,
             halfviolin_alpha=0.8, 
@@ -2919,7 +3011,10 @@ class EffectSizeDataFrame(object):
             sankey_kwargs=None,
             reflines_kwargs=None,
             group_summary_kwargs=None,
-            legend_kwargs=None):
+            legend_kwargs=None,
+            title=None, fontsize_title = 16,
+            fontsize_rawxlabel = 12,fontsize_rawylabel = 12,fontsize_contrastxlabel = 12, fontsize_contrastylabel = 12,
+            fontsize_delta2label = 12):
 
         """
         Creates an estimation plot for the effect size of interest.
@@ -3040,6 +3135,24 @@ class EffectSizeDataFrame(object):
             `legend` command here, as a dict. If None, the following keywords
             are passed to matplotlib.Axes.legend : {'loc':'upper left',
             'frameon':False}.
+        title : string, default None
+            Title for the plot. If None, no title will be displayed. Pass any
+            keyword arguments accepted by the matplotlib.pyplot.suptitle `t` command here,
+            as a string.
+        fontsize_title : float or {'xx-small', 'x-small', 'small', 'medium', 'large', 'x-large', 'xx-large'}, default 'large'
+            Font size for the plot title. If a float, the fontsize in points. The
+            string values denote sizes relative to the default font size. Pass any keyword arguments accepted
+            by the matplotlib.pyplot.suptitle `fontsize` command here, as a string.
+        fontsize_rawxlabel : float, default 12
+            Font size for the raw axes xlabel.
+        fontsize_rawylabel : float, default 12
+            Font size for the raw axes ylabel.
+        fontsize_contrastxlabel : float, default 12
+            Font size for the contrast axes xlabel.
+        fontsize_contrastylabel : float, default 12
+            Font size for the contrast axes ylabel.
+        fontsize_delta2label : float, default 12
+            Font size for the delta-delta axes ylabel.
 
 
         Returns
@@ -3314,7 +3427,7 @@ class PermutationTest:
         These should be numerical iterables.
     effect_size : string.
         Any one of the following are accepted inputs:
-        'mean_diff', 'median_diff', 'cohens_d', 'hedges_g', or 'cliffs_delta'
+        'mean_diff', 'median_diff', 'cohens_d', 'hedges_g', 'delta_g" or 'cliffs_delta'
     is_paired : string, default None
     permutation_count : int, default 10000
         The number of permutations (reshuffles) to perform.
