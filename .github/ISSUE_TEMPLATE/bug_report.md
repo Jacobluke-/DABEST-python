@@ -21,13 +21,14 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-**Package version (please complete the following information):**
+**Your package version (please complete the following information):**
  - dabest: [e.g. 2023.3.29]
  - pandas: 
  - numpy: 
  - matplotlib:
- - seabon:
+ - seaborn:
  - scipy:
+
 
 **Additional context**
 Add any other context about the problem here.
