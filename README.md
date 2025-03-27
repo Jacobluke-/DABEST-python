@@ -13,6 +13,8 @@ citation](https://zenodo.org/badge/DOI/10.1038/s41592-019-0470-3.svg)](https://r
 
 ## Recent Version Update
 
+[new](tutorials/01-basics.ipynb)
+
 We are proud to announce **DABEST Version Ondeh (v2024.03.29)**. This
 new version of the DABEST Python library provides several new features
 and includes performance improvements.
