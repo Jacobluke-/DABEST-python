@@ -479,6 +479,43 @@ def test_33_multi_paired_different_sizes():
 
     return multi_paired_diff_sizes.mean_diff.plot()
 
+# Tests for custom_palette with color_col on paired plots (GitHub fix)
+@pytest.mark.mpl_image_compare(tolerance=8)
+def test_34_paired_color_col_string_palette():
+    """Test two-group paired with string palette + color_col."""
+    plt.rcdefaults()
+    return two_groups_paired.mean_diff.plot(
+        color_col="Gender",
+        custom_palette="Dark2"
+    )
+
+@pytest.mark.mpl_image_compare(tolerance=8)
+def test_35_paired_color_col_dict_palette():
+    """Test two-group paired with dict palette + color_col."""
+    plt.rcdefaults()
+    return two_groups_paired.mean_diff.plot(
+        color_col="Gender",
+        custom_palette={"Female": "red", "Male": "blue"}
+    )
+
+@pytest.mark.mpl_image_compare(tolerance=8)
+def test_36_multigroups_baseline_color_col_string_palette():
+    """Test multi-group baseline paired with string palette + color_col."""
+    plt.rcdefaults()
+    return multi_groups_baseline.mean_diff.plot(
+        color_col="Gender",
+        custom_palette="Dark2"
+    )
+
+@pytest.mark.mpl_image_compare(tolerance=8)
+def test_37_multigroups_baseline_color_col_dict_palette():
+    """Test multi-group baseline paired with dict palette + color_col."""
+    plt.rcdefaults()
+    return multi_groups_baseline.mean_diff.plot(
+        color_col="Gender",
+        custom_palette={"Female": "purple", "Male": "orange"}
+    )
+
 @pytest.mark.mpl_image_compare(tolerance=8)
 def test_99_style_sheets():
     # Perform this test last so we don't have to reset the plot style.

@@ -556,6 +556,8 @@ def get_color_palette(
         if plot_kwargs["custom_palette"] is not None:
             if delta2 or sankey:
                 bootstraps_color_by_group = False
+            elif color_col is not None:
+                bootstraps_color_by_group = False  # Keep False when color_col is specified
             else:
                 bootstraps_color_by_group = True
         else:
@@ -630,7 +632,10 @@ def get_color_palette(
                     k: custom_pal[k] for k in all_plot_groups if k in color_groups
                 }
             else:
-                raise ValueError("The `custom_palette` dictionary is not supported when `color_col` is not None.")
+                # color_col is specified - map custom_palette keys to color_groups
+                groups_in_palette = {
+                    k: custom_pal[k] for k in color_groups if k in custom_pal
+                }
 
             names = groups_in_palette.keys()
             unsat_colors = groups_in_palette.values()
@@ -1983,3 +1988,4 @@ def prepare_bars_for_plot(bar_type, bar_kwargs, horizontal, plot_palette_raw, co
     bar_dict['colors'] = colors
 
     return bar_dict, bar_kwargs
+
