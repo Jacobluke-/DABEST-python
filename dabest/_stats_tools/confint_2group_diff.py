@@ -17,6 +17,7 @@ from numpy.random import PCG64, RandomState
 from numba import njit, prange
 from scipy.stats import norm
 from numpy import isnan
+from .effsize import _compute_standardizers, _cliffs_delta_core
 
 # %% ../../nbs/API/confint_2group_diff.ipynb #8cf9b1fc
 @njit(cache=True, parallel=True)
@@ -136,28 +137,160 @@ def bootstrap_indices(is_paired, x0_len, x1_len, resamples, random_seed):
     return indices
 
 
+@njit(cache=True)
+def _bootstrap_mean_diff_loop(x0, x1, resamples, random_seed, is_paired):
+    """Numba-accelerated bootstrap loop for mean difference."""
+    np.random.seed(random_seed)
+    n0, n1 = len(x0), len(x1)
+    out = np.empty(resamples)
+    for i in range(resamples):
+        if is_paired:
+            idx = np.random.choice(n0, n0)
+            out[i] = np.mean(x1[idx] - x0[idx])
+        else:
+            idx0 = np.random.choice(n0, n0)
+            idx1 = np.random.choice(n1, n1)
+            out[i] = np.mean(x1[idx1]) - np.mean(x0[idx0])
+    return out
+
+
+@njit(cache=True)
+def _bootstrap_median_diff_loop(x0, x1, resamples, random_seed, is_paired):
+    """Numba-accelerated bootstrap loop for median difference."""
+    np.random.seed(random_seed)
+    n0, n1 = len(x0), len(x1)
+    out = np.empty(resamples)
+    for i in range(resamples):
+        if is_paired:
+            idx = np.random.choice(n0, n0)
+            out[i] = np.median(x1[idx] - x0[idx])
+        else:
+            idx0 = np.random.choice(n0, n0)
+            idx1 = np.random.choice(n1, n1)
+            out[i] = np.median(x1[idx1]) - np.median(x0[idx0])
+    return out
+
+
+@njit(cache=True)
+def _bootstrap_cohens_d_loop(x0, x1, resamples, random_seed, is_paired):
+    """Numba-accelerated bootstrap loop for Cohen's d."""
+    np.random.seed(random_seed)
+    n0, n1 = len(x0), len(x1)
+    out = np.empty(resamples)
+    for i in range(resamples):
+        if is_paired:
+            idx = np.random.choice(n0, n0)
+            x0_s, x1_s = x0[idx], x1[idx]
+        else:
+            idx0 = np.random.choice(n0, n0)
+            idx1 = np.random.choice(n1, n1)
+            x0_s, x1_s = x0[idx0], x1[idx1]
+        pooled_sd, average_sd = _compute_standardizers(x0_s, x1_s)
+        if is_paired:
+            delta = x1_s - x0_s
+            M = np.mean(delta)
+            out[i] = M / average_sd
+        else:
+            M = np.mean(x1_s) - np.mean(x0_s)
+            out[i] = M / pooled_sd
+    return out
+
+
+@njit(cache=True)
+def _bootstrap_hedges_g_loop(x0, x1, resamples, random_seed, is_paired, correction_factor):
+    """Numba-accelerated bootstrap loop for Hedges' g.
+    correction_factor must be precomputed outside (uses scipy.gamma)."""
+    np.random.seed(random_seed)
+    n0, n1 = len(x0), len(x1)
+    out = np.empty(resamples)
+    for i in range(resamples):
+        if is_paired:
+            idx = np.random.choice(n0, n0)
+            x0_s, x1_s = x0[idx], x1[idx]
+        else:
+            idx0 = np.random.choice(n0, n0)
+            idx1 = np.random.choice(n1, n1)
+            x0_s, x1_s = x0[idx0], x1[idx1]
+        pooled_sd, average_sd = _compute_standardizers(x0_s, x1_s)
+        if is_paired:
+            delta = x1_s - x0_s
+            M = np.mean(delta)
+            d = M / average_sd
+        else:
+            M = np.mean(x1_s) - np.mean(x0_s)
+            d = M / pooled_sd
+        out[i] = correction_factor * d
+    return out
+
+
+def _bootstrap_cliffs_delta_loop(x0, x1, resamples, random_seed):
+    """Bootstrap loop for Cliff's delta (unpaired only)."""
+    np.random.seed(random_seed)
+    n0, n1 = len(x0), len(x1)
+    out = np.empty(resamples)
+    for i in range(resamples):
+        idx0 = np.random.choice(n0, n0)
+        idx1 = np.random.choice(n1, n1)
+        out[i] = _cliffs_delta_core(x0[idx0], x1[idx1])
+    return out
+
+
+@njit(cache=True)
+def _bootstrap_cohens_h_loop(x0, x1, resamples, random_seed):
+    """Numba-accelerated bootstrap loop for Cohen's h (unpaired, proportional only)."""
+    np.random.seed(random_seed)
+    n0, n1 = len(x0), len(x1)
+    out = np.empty(resamples)
+    for i in range(resamples):
+        idx0 = np.random.choice(n0, n0)
+        idx1 = np.random.choice(n1, n1)
+        x0_s = x0[idx0]
+        x1_s = x1[idx1]
+        prop0 = np.sum(x0_s) / len(x0_s)
+        prop1 = np.sum(x1_s) / len(x1_s)
+        phi0 = 2.0 * np.arcsin(np.sqrt(prop0))
+        phi1 = 2.0 * np.arcsin(np.sqrt(prop1))
+        out[i] = phi1 - phi0
+    return out
+
+
 def compute_bootstrapped_diff(
     x0, x1, is_paired, effect_size, resamples=5000, random_seed=12345
 ):
     """Bootstraps the effect_size for 2 groups."""
 
-    from . import effsize as __es
+    paired = bool(is_paired)
 
-    x0_len, x1_len = len(x0), len(x1)
-    indices = bootstrap_indices(is_paired, x0_len, x1_len, resamples, random_seed)
-    out = np.empty(resamples, dtype=np.float64)
+    if effect_size == "mean_diff":
+        return _bootstrap_mean_diff_loop(x0, x1, resamples, random_seed, paired)
 
-    for i in range(resamples):
-        if is_paired:
-            x0_sample = x0[indices[i, :x0_len]]
-            x1_sample = x1[indices[i, :x0_len]]
-        else:
-            x0_sample = x0[indices[i, :x0_len]]
-            x1_sample = x1[indices[i, x0_len:x0_len+x1_len]]
+    elif effect_size == "median_diff":
+        import warnings
+        mes1 = "Using median as the statistic in bootstrapping may " + \
+                "result in a biased estimate and cause problems with " + \
+                "BCa confidence intervals. Consider using a different statistic, such as the mean.\n"
+        mes2 = "When plotting, please consider using percetile confidence intervals " + \
+                "by specifying `ci_type='pct'`. For detailed information, " + \
+                "refer to https://github.com/ACCLAB/DABEST-python/issues/129 \n"
+        warnings.warn(message=mes1+mes2, category=UserWarning)
+        return _bootstrap_median_diff_loop(x0, x1, resamples, random_seed, paired)
 
-        out[i] = __es.two_group_difference(x0_sample, x1_sample, is_paired, effect_size)
+    elif effect_size == "cohens_d":
+        return _bootstrap_cohens_d_loop(x0, x1, resamples, random_seed, paired)
 
-    return out
+    elif effect_size == "hedges_g":
+        from .effsize import _compute_hedges_correction_factor
+        cf = _compute_hedges_correction_factor(len(x0), len(x1))
+        return _bootstrap_hedges_g_loop(x0, x1, resamples, random_seed, paired, cf)
+
+    elif effect_size == "cliffs_delta":
+        return _bootstrap_cliffs_delta_loop(x0, x1, resamples, random_seed)
+
+    elif effect_size == "cohens_h":
+        return _bootstrap_cohens_h_loop(x0, x1, resamples, random_seed)
+
+    else:
+        raise ValueError(f"Unknown effect_size: {effect_size}")
 
 
 @njit(cache=True)

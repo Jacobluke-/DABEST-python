@@ -272,9 +272,8 @@ def hedges_g(control:list|tuple|np.ndarray,
     return correction_factor * d
 
 # %% ../../nbs/API/effsize.ipynb #8fafb111
-@njit(cache=True)
 def _mann_whitney_u(x, y):
-    """Numba-optimized Mann-Whitney U calculation"""
+    """Mann-Whitney U calculation"""
     n1, n2 = len(x), len(y)
     combined = np.concatenate((x, y))
     
@@ -289,9 +288,8 @@ def _mann_whitney_u(x, y):
     U1 = R1 - (n1 * (n1 + 1)) / 2
     return U1
 
-@njit(cache=True)
 def _cliffs_delta_core(control, test):
-    """Numba-optimized Cliff's delta calculation"""
+    """Cliff's delta calculation"""
     U = _mann_whitney_u(test, control)
     return ((2 * U) / (len(control) * len(test))) - 1
 
@@ -305,7 +303,6 @@ def cliffs_delta(control:list|tuple|np.ndarray,
     c = control[~np.isnan(control)]
     t = test[~np.isnan(test)]
     return _cliffs_delta_core(c, t)
-
 
 # %% ../../nbs/API/effsize.ipynb #7a772510
 @njit(cache=True)

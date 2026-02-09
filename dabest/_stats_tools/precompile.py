@@ -26,12 +26,11 @@ def precompile_all():
     # Create dummy data
     dummy_control = np.array([1.0, 2.0, 3.0])
     dummy_test = np.array([4.0, 5.0, 6.0])
+    dummy_binary = np.array([0.0, 1.0, 1.0])
     
     funcs = [
         # effsize.py functions
         (effsize.cohens_d, (dummy_control, dummy_test)),
-        (effsize._mann_whitney_u, (dummy_control, dummy_test)),
-        (effsize._cliffs_delta_core, (dummy_control, dummy_test)),
         (effsize._compute_standardizers, (dummy_control, dummy_test)),
         (effsize.weighted_delta, (np.array([1.0, 2.0]), np.array([0.1, 0.2]))),
         
@@ -42,7 +41,14 @@ def precompile_all():
         (confint_2group_diff.delta2_bootstrap_loop, 
             (dummy_control, dummy_test, dummy_control, dummy_test, 10, 1.0, 12345, False)),
         (confint_2group_diff._compute_quantile, (0.5, 0.1, 0.1)),
-        (confint_2group_diff.calculate_group_var, (1.0, 3, 1.0, 3))
+        (confint_2group_diff.calculate_group_var, (1.0, 3, 1.0, 3)),
+        
+        # Bootstrap loop functions for each effect size
+        (confint_2group_diff._bootstrap_mean_diff_loop, (dummy_control, dummy_test, 10, 12345, False)),
+        (confint_2group_diff._bootstrap_median_diff_loop, (dummy_control, dummy_test, 10, 12345, False)),
+        (confint_2group_diff._bootstrap_cohens_d_loop, (dummy_control, dummy_test, 10, 12345, False)),
+        (confint_2group_diff._bootstrap_hedges_g_loop, (dummy_control, dummy_test, 10, 12345, False, 1.0)),
+        (confint_2group_diff._bootstrap_cohens_h_loop, (dummy_binary, dummy_binary, 10, 12345)),
     ]
     
     for func, args in tqdm(funcs, desc="Compiling numba functions"):
